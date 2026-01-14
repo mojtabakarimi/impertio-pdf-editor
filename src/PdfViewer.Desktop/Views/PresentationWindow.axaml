@@ -1,0 +1,44 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="PdfViewer.Desktop.Views.PresentationWindow"
+        Title="Presentation Mode"
+        WindowState="FullScreen"
+        Background="Black"
+        SystemDecorations="None">
+
+    <Panel>
+        <!-- Page Image -->
+        <Image x:Name="PageImage"
+               Stretch="Uniform"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"/>
+
+        <!-- Page Counter (bottom right) -->
+        <Border Background="#80000000"
+                CornerRadius="4"
+                Padding="12,6"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="20">
+            <TextBlock x:Name="PageCounter"
+                       Foreground="White"
+                       FontSize="14"/>
+        </Border>
+
+        <!-- Instructions (bottom left, fades after 3 seconds) -->
+        <Border x:Name="InstructionsPanel"
+                Background="#80000000"
+                CornerRadius="4"
+                Padding="12,8"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Bottom"
+                Margin="20">
+            <StackPanel Spacing="4">
+                <TextBlock Text="Navigation:" Foreground="White" FontWeight="SemiBold" FontSize="12"/>
+                <TextBlock Text="Arrow Keys / Space: Next/Previous Page" Foreground="#CCCCCC" FontSize="11"/>
+                <TextBlock Text="Home/End: First/Last Page" Foreground="#CCCCCC" FontSize="11"/>
+                <TextBlock Text="Escape: Exit Presentation" Foreground="#CCCCCC" FontSize="11"/>
+            </StackPanel>
+        </Border>
+    </Panel>
+</Window>

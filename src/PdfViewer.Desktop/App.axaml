@@ -1,0 +1,28 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="PdfViewer.Desktop.App"
+             xmlns:local="using:PdfViewer.Desktop"
+             RequestedThemeVariant="Light">
+             <!-- Force Light theme for consistent menu appearance -->
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+
+    <Application.Styles>
+        <FluentTheme />
+    </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Menu and popup background overrides -->
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBackground" Color="#FFFFFF"/>
+            <SolidColorBrush x:Key="MenuFlyoutPresenterBorderBrush" Color="#E0E0E0"/>
+            <SolidColorBrush x:Key="MenuBarItemBackgroundPointerOver" Color="#0078D4"/>
+            <SolidColorBrush x:Key="MenuBarItemBackgroundPressed" Color="#0078D4"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" Color="#0078D4"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemForeground" Color="#333333"/>
+            <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" Color="#FFFFFF"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

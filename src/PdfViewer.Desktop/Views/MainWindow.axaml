@@ -1,0 +1,1422 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:PdfViewer.Desktop.ViewModels"
+        xmlns:local="using:PdfViewer.Desktop.Converters"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="900"
+        x:Class="PdfViewer.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="{Binding DocumentTitle}"
+        Width="1400" Height="900"
+        MinWidth="800" MinHeight="600"
+        DragDrop.AllowDrop="True">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Window.Styles>
+        <!-- Foxit/PDF-XChange Style Ribbon -->
+        <Style Selector="TabControl.ribbon">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+        <Style Selector="TabControl.ribbon > TabItem">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#444444"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="10,1,10,1"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="MinHeight" Value="20"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style Selector="TabControl.ribbon > TabItem:selected">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#1A73E8"/>
+            <Setter Property="BorderBrush" Value="#D0D0D0"/>
+            <Setter Property="BorderThickness" Value="1,1,1,0"/>
+        </Style>
+
+        <Style Selector="TabControl.ribbon > TabItem:pointerover">
+            <Setter Property="Background" Value="#E8F0FE"/>
+        </Style>
+
+        <Style Selector="TabControl.ribbon > TabItem:selected /template/ Border#PART_SelectedPipe">
+            <Setter Property="IsVisible" Value="False"/>
+        </Style>
+
+        <!-- Ribbon Large Button -->
+        <Style Selector="Button.ribbon-large">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="MinWidth" Value="56"/>
+        </Style>
+        <Style Selector="Button.ribbon-large:pointerover">
+            <Setter Property="Background" Value="#E5F3FF"/>
+            <Setter Property="BorderBrush" Value="#CCE4FF"/>
+        </Style>
+        <Style Selector="Button.ribbon-large:pressed">
+            <Setter Property="Background" Value="#CCE4FF"/>
+            <Setter Property="BorderBrush" Value="#99C9FF"/>
+        </Style>
+        <Style Selector="Button.ribbon-large:disabled">
+            <Setter Property="Opacity" Value="0.5"/>
+        </Style>
+
+        <!-- Ribbon Small Button -->
+        <Style Selector="Button.ribbon-small">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Height" Value="24"/>
+        </Style>
+        <Style Selector="Button.ribbon-small:pointerover">
+            <Setter Property="Background" Value="#E5F3FF"/>
+            <Setter Property="BorderBrush" Value="#CCE4FF"/>
+        </Style>
+        <Style Selector="Button.ribbon-small:pressed">
+            <Setter Property="Background" Value="#CCE4FF"/>
+            <Setter Property="BorderBrush" Value="#99C9FF"/>
+        </Style>
+        <Style Selector="Button.ribbon-small:disabled">
+            <Setter Property="Opacity" Value="0.5"/>
+        </Style>
+
+        <!-- Ribbon Toggle Button -->
+        <Style Selector="ToggleButton.ribbon-large">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="MinWidth" Value="56"/>
+        </Style>
+        <Style Selector="ToggleButton.ribbon-large:pointerover">
+            <Setter Property="Background" Value="#E5F3FF"/>
+            <Setter Property="BorderBrush" Value="#CCE4FF"/>
+        </Style>
+        <Style Selector="ToggleButton.ribbon-large:checked">
+            <Setter Property="Background" Value="#CCE4FF"/>
+            <Setter Property="BorderBrush" Value="#1A73E8"/>
+        </Style>
+
+        <!-- Ribbon Toggle Button Small -->
+        <Style Selector="ToggleButton.ribbon-small">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="CornerRadius" Value="3"/>
+        </Style>
+        <Style Selector="ToggleButton.ribbon-small:pointerover">
+            <Setter Property="Background" Value="#E5F3FF"/>
+            <Setter Property="BorderBrush" Value="#CCE4FF"/>
+        </Style>
+        <Style Selector="ToggleButton.ribbon-small:checked">
+            <Setter Property="Background" Value="#CCE4FF"/>
+            <Setter Property="BorderBrush" Value="#1A73E8"/>
+        </Style>
+
+        <!-- Global text color fix for ribbon buttons -->
+        <Style Selector="Button.ribbon-large TextBlock">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+        <Style Selector="Button.ribbon-small TextBlock">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+        <Style Selector="ToggleButton.ribbon-large TextBlock">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+        <Style Selector="ToggleButton.ribbon-small TextBlock">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+
+        <!-- Menu styling -->
+        <Style Selector="Menu">
+            <Setter Property="Background" Value="#F8F8F8"/>
+        </Style>
+        <!-- Top-level menu items -->
+        <Style Selector="Menu > MenuItem">
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="Menu > MenuItem:pointerover">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="Menu > MenuItem:pointerover /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="#0078D4"/>
+        </Style>
+        <!-- Submenu popup styling -->
+        <Style Selector="Menu MenuItem Popup">
+            <Setter Property="Margin" Value="0"/>
+        </Style>
+        <Style Selector="Menu MenuItem Popup > Border">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+        <!-- Submenu items -->
+        <Style Selector="MenuItem MenuItem">
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="MenuItem MenuItem:pointerover">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <Style Selector="MenuItem MenuItem:pointerover /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="#0078D4"/>
+        </Style>
+        <!-- Context menu styling -->
+        <Style Selector="ContextMenu">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="ContextMenu MenuItem">
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="ContextMenu MenuItem:pointerover">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+        <!-- MenuFlyout styling -->
+        <Style Selector="MenuFlyoutPresenter">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#CCCCCC"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+        <Style Selector="MenuFlyoutPresenter MenuItem">
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+        <Style Selector="MenuFlyoutPresenter MenuItem:pointerover">
+            <Setter Property="Background" Value="#0078D4"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+        </Style>
+
+        <!-- ComboBox styling -->
+        <Style Selector="ComboBox">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+
+        <!-- TextBox styling -->
+        <Style Selector="TextBox">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+
+        <!-- TextBlock default styling -->
+        <Style Selector="TextBlock">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+
+        <!-- Button default styling -->
+        <Style Selector="Button">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+
+        <!-- CheckBox styling -->
+        <Style Selector="CheckBox">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+
+        <!-- RadioButton styling -->
+        <Style Selector="RadioButton">
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+
+        <!-- Quick Access Toolbar Button (white text on blue background) -->
+        <Style Selector="Button.qat-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="CornerRadius" Value="2"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="Button.qat-button:pointerover">
+            <Setter Property="Background" Value="#FFFFFF40"/>
+        </Style>
+        <Style Selector="Button.qat-button:pressed">
+            <Setter Property="Background" Value="#FFFFFF60"/>
+        </Style>
+        <Style Selector="Button.qat-button TextBlock">
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- Page number textbox - no focus border -->
+        <Style Selector="TextBox#PageNumberTextBox:focus">
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="TextBox#PageNumberTextBox:pointerover">
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+        <Style Selector="TextBox#PageNumberTextBox /template/ Border#PART_BorderElement">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+        </Style>
+    </Window.Styles>
+
+    <DockPanel>
+        <!-- Title Bar with Quick Access Toolbar (Foxit/PDF-XChange style) -->
+        <Border DockPanel.Dock="Top"
+                Background="#1A73E8">
+            <Grid Height="32">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- App Icon & Title -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="8,0">
+                    <TextBlock Text="📄" FontSize="16" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                    <TextBlock Text="PDF Viewer" FontSize="12" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Quick Access Toolbar -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="16,0,0,0">
+                    <Button Classes="qat-button" Click="OpenDocument_Click" ToolTip.Tip="Open (Ctrl+O)">
+                        <TextBlock Text="📂" Foreground="White"/>
+                    </Button>
+                    <Button Classes="qat-button" Click="SaveAs_Click" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Save As (Ctrl+Shift+S)">
+                        <TextBlock Text="💾" Foreground="White"/>
+                    </Button>
+                    <Button Classes="qat-button" Command="{Binding PrintCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Print (Ctrl+P)">
+                        <TextBlock Text="🖨️" Foreground="White"/>
+                    </Button>
+                    <Rectangle Width="1" Height="16" Fill="#FFFFFF50" Margin="6,0"/>
+                    <Button Classes="qat-button" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Undo">
+                        <TextBlock Text="↶" Foreground="White" FontSize="16"/>
+                    </Button>
+                    <Button Classes="qat-button" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Redo">
+                        <TextBlock Text="↷" Foreground="White" FontSize="16"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top" Background="#F8F8F8" IsVisible="{Binding IsMenuBarVisible}">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open..." Click="OpenDocument_Click" HotKey="Ctrl+O">
+                    <MenuItem.Icon>
+                        <TextBlock Text="📂"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Recent Files" x:Name="RecentFilesMenu"/>
+                <Separator/>
+                <MenuItem Header="_Save" Command="{Binding SaveCommand}" HotKey="Ctrl+S" IsEnabled="{Binding IsDocumentLoaded}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="💾"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Save _As..." Click="SaveAs_Click" HotKey="Ctrl+Shift+S" IsEnabled="{Binding IsDocumentLoaded}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="💾"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_Print..." Command="{Binding PrintCommand}" HotKey="Ctrl+P">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🖨️"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_Properties" Click="ShowProperties_Click" HotKey="Ctrl+D">
+                    <MenuItem.Icon>
+                        <TextBlock Text="ℹ️"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="E_xit" Click="Exit_Click" HotKey="Alt+F4"/>
+            </MenuItem>
+
+            <MenuItem Header="_Edit">
+                <MenuItem Header="_Copy" HotKey="Ctrl+C">
+                    <MenuItem.Icon>
+                        <TextBlock Text="📋"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Select _All" HotKey="Ctrl+A"/>
+                <Separator/>
+                <MenuItem Header="_Find..." Command="{Binding ToggleSearchPanelCommand}" HotKey="Ctrl+F">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🔍"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Find _Next" HotKey="F3"/>
+                <MenuItem Header="Find _Previous" HotKey="Shift+F3"/>
+                <Separator/>
+                <MenuItem Header="_Go To Page..." HotKey="Ctrl+G">
+                    <MenuItem.Icon>
+                        <TextBlock Text="#"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+
+            <MenuItem Header="_View">
+                <MenuItem Header="Zoom _In" Command="{Binding ZoomInCommand}" HotKey="Ctrl+OemPlus">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🔍+"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Zoom _Out" Command="{Binding ZoomOutCommand}" HotKey="Ctrl+OemMinus">
+                    <MenuItem.Icon>
+                        <TextBlock Text="🔍-"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Actual Size" Command="{Binding ResetZoomCommand}" HotKey="Ctrl+D0"/>
+                <Separator/>
+                <MenuItem Header="Fit to _Width" Command="{Binding SetFitWidthCommand}"/>
+                <MenuItem Header="Fit to _Page" Command="{Binding SetFitPageCommand}"/>
+                <Separator/>
+                <MenuItem Header="_Rotate Clockwise" Command="{Binding RotateClockwiseCommand}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="↻"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Rotate _Counter-Clockwise" Command="{Binding RotateCounterClockwiseCommand}">
+                    <MenuItem.Icon>
+                        <TextBlock Text="↺"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_Sidebar">
+                    <MenuItem Header="_Thumbnails" IsChecked="True"/>
+                    <MenuItem Header="_Bookmarks"/>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="_Full Screen" Command="{Binding ToggleFullScreenCommand}" HotKey="F11">
+                    <MenuItem.Icon>
+                        <TextBlock Text="⛶"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="_Presentation Mode" Click="StartPresentation_Click" HotKey="F5">
+                    <MenuItem.Icon>
+                        <TextBlock Text="📽️"/>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator/>
+                <MenuItem Header="Two-Page View" Command="{Binding SetTwoPageModeCommand}"/>
+                <MenuItem Header="Single Page View" Command="{Binding SetSinglePageModeCommand}"/>
+                <MenuItem Header="Continuous Scroll" Command="{Binding SetContinuousModeCommand}"/>
+            </MenuItem>
+
+            <MenuItem Header="_Tools">
+                <MenuItem Header="_Select Text" Command="{Binding SetSelectToolCommand}"/>
+                <MenuItem Header="_Hand Tool" Command="{Binding SetHandToolCommand}"/>
+                <MenuItem Header="_Zoom Tool" Command="{Binding SetZoomToolCommand}"/>
+                <Separator/>
+                <MenuItem Header="_Measure Distance"/>
+                <MenuItem Header="_Add Annotation"/>
+            </MenuItem>
+
+            <MenuItem Header="_Help">
+                <MenuItem Header="_Keyboard Shortcuts"/>
+                <MenuItem Header="_About PDF Viewer"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Ribbon Interface (Foxit/PDF-XChange Style) -->
+        <Border DockPanel.Dock="Top" Background="#F5F5F5" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1" IsVisible="{Binding IsRibbonVisible}">
+            <DockPanel>
+                <!-- Ribbon Tabs Header -->
+                <Border DockPanel.Dock="Top" Background="#F5F5F5" Padding="4,0,0,0">
+                    <TabControl Classes="ribbon" x:Name="RibbonTabControl">
+                        <!-- HOME TAB -->
+                        <TabItem Header="HOME">
+                            <Border Background="#FFFFFF" Padding="8,6" BorderBrush="#D0D0D0" BorderThickness="1,0,1,1">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- Tools Group -->
+                                    <Border Padding="4,0,8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Tools" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <ToggleButton Classes="ribbon-large" Command="{Binding SetSelectToolCommand}" IsEnabled="{Binding IsDocumentLoaded}" IsChecked="{Binding IsSelectToolSelected, Mode=OneWay}" ToolTip.Tip="Select Text Tool">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="I" FontSize="22" FontFamily="Consolas" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Select" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                                <ToggleButton Classes="ribbon-large" Command="{Binding SetHandToolCommand}" IsEnabled="{Binding IsDocumentLoaded}" IsChecked="{Binding IsHandToolSelected, Mode=OneWay}" ToolTip.Tip="Hand Tool (Pan/Grab)">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="✋" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Hand" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Zoom Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Zoom" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                                                <Button Classes="ribbon-small" Command="{Binding ZoomOutCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Zoom Out (Ctrl+-)" Content="−" FontSize="16" FontWeight="Bold"/>
+                                                <Button Classes="ribbon-small" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Click for zoom presets">
+                                                    <Button.Flyout>
+                                                        <MenuFlyout Placement="BottomEdgeAlignedLeft">
+                                                            <MenuItem Header="50%" Command="{Binding ZoomToPresetCommand}" CommandParameter="50"/>
+                                                            <MenuItem Header="75%" Command="{Binding ZoomToPresetCommand}" CommandParameter="75"/>
+                                                            <MenuItem Header="100%" Command="{Binding ZoomToPresetCommand}" CommandParameter="100"/>
+                                                            <MenuItem Header="125%" Command="{Binding ZoomToPresetCommand}" CommandParameter="125"/>
+                                                            <MenuItem Header="150%" Command="{Binding ZoomToPresetCommand}" CommandParameter="150"/>
+                                                            <MenuItem Header="200%" Command="{Binding ZoomToPresetCommand}" CommandParameter="200"/>
+                                                            <MenuItem Header="300%" Command="{Binding ZoomToPresetCommand}" CommandParameter="300"/>
+                                                            <Separator/>
+                                                            <MenuItem Header="Fit Width" Command="{Binding SetFitWidthCommand}"/>
+                                                            <MenuItem Header="Fit Page" Command="{Binding SetFitPageCommand}"/>
+                                                            <MenuItem Header="Actual Size" Command="{Binding SetActualSizeCommand}"/>
+                                                        </MenuFlyout>
+                                                    </Button.Flyout>
+                                                    <Border Background="White" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="3" Padding="8,4">
+                                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                                            <TextBlock Text="{Binding ZoomFactor, StringFormat='{}{0:P0}'}"
+                                                                       FontSize="11"
+                                                                       VerticalAlignment="Center"
+                                                                       Width="40"
+                                                                       TextAlignment="Center"/>
+                                                            <TextBlock Text="▼" FontSize="8" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Button>
+                                                <Button Classes="ribbon-small" Command="{Binding ZoomInCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Zoom In (Ctrl++)" Content="+" FontSize="16" FontWeight="Bold"/>
+                                                <Rectangle Width="1" Fill="#E8E8E8" Margin="6,4"/>
+                                                <Button Classes="ribbon-small" Command="{Binding SetFitWidthCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Fit Width">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock Text="↔" FontSize="12"/>
+                                                        <TextBlock Text="Width" FontSize="10"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-small" Command="{Binding SetFitPageCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Fit Page">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock Text="⛶" FontSize="12"/>
+                                                        <TextBlock Text="Page" FontSize="10"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Rotate Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Rotate" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" Command="{Binding RotateCounterClockwiseCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Rotate Left">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="↺" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Left" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" Command="{Binding RotateClockwiseCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Rotate Right">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="↻" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Right" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Find Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Find" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <Button Classes="ribbon-large" Command="{Binding ToggleSearchPanelCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Search (Ctrl+F)">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="🔍" FontSize="22" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="Search" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- View Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="View" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <ToggleButton Classes="ribbon-large" IsEnabled="{Binding IsDocumentLoaded}" IsChecked="{Binding IsSidebarVisible}" ToolTip.Tip="Thumbnails">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="📑" FontSize="20" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Thumbnails" FontSize="9" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                                <Button Classes="ribbon-large" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Bookmarks">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="📖" FontSize="20" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Bookmarks" FontSize="9" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" Command="{Binding ToggleFullScreenCommand}" ToolTip.Tip="Full Screen (F11)">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="⛶" FontSize="20" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Full Screen" FontSize="9" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </TabItem>
+
+                        <!-- VIEW TAB -->
+                        <TabItem Header="VIEW">
+                            <Border Background="#FFFFFF" Padding="8,6" BorderBrush="#D0D0D0" BorderThickness="1,0,1,1">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- Page Display Group -->
+                                    <Border Padding="4,0,8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Page Display" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <ToggleButton Classes="ribbon-large" Command="{Binding SetSinglePageModeCommand}" IsEnabled="{Binding IsDocumentLoaded}" IsChecked="{Binding IsSinglePageMode, Mode=OneWay}" ToolTip.Tip="Single Page View">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="📄" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Single" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                                <ToggleButton Classes="ribbon-large" Command="{Binding SetContinuousModeCommand}" IsEnabled="{Binding IsDocumentLoaded}" IsChecked="{Binding IsContinuousMode, Mode=OneWay}" ToolTip.Tip="Continuous Scroll">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="📃" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Continuous" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                                <ToggleButton Classes="ribbon-large" Command="{Binding SetTwoPageModeCommand}" IsEnabled="{Binding IsDocumentLoaded}" IsChecked="{Binding IsTwoPageMode, Mode=OneWay}" ToolTip.Tip="Two-Page View (Book)">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="📖" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Two Page" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Zoom Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Zoom" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" Command="{Binding ZoomInCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Zoom In">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="🔍+" FontSize="20" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Zoom In" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" Command="{Binding ZoomOutCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Zoom Out">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="🔍−" FontSize="20" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Zoom Out" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" Command="{Binding SetActualSizeCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Actual Size (100%)">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="1:1" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Actual Size" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Rotate Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Rotate View" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" Command="{Binding RotateCounterClockwiseCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Rotate Left 90°">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="↺" FontSize="24" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Left" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" Command="{Binding RotateClockwiseCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Rotate Right 90°">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="↻" FontSize="24" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Right" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Panels Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Panels" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Spacing="2">
+                                                <ToggleButton Classes="ribbon-small" IsChecked="{Binding IsSidebarVisible}" Padding="8,4">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock Text="📑" FontSize="12"/>
+                                                        <TextBlock Text="Thumbnails Panel" FontSize="10"/>
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                                <ToggleButton Classes="ribbon-small" Padding="8,4">
+                                                    <StackPanel Orientation="Horizontal" Spacing="4">
+                                                        <TextBlock Text="📖" FontSize="12"/>
+                                                        <TextBlock Text="Bookmarks Panel" FontSize="10"/>
+                                                    </StackPanel>
+                                                </ToggleButton>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </TabItem>
+
+                        <!-- TOOLS TAB -->
+                        <TabItem Header="TOOLS">
+                            <Border Background="#FFFFFF" Padding="8,6" BorderBrush="#D0D0D0" BorderThickness="1,0,1,1">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- Select Group -->
+                                    <Border Padding="4,0,8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Select &amp; Zoom" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" Command="{Binding SetSelectToolCommand}" ToolTip.Tip="Select Text">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="I" FontSize="24" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Select Text" FontSize="9" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" Command="{Binding SetHandToolCommand}" ToolTip.Tip="Hand Tool (Pan)">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="✋" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Hand" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" Command="{Binding SetZoomToolCommand}" ToolTip.Tip="Marquee Zoom">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="🔍" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Zoom" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Find Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Find" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" Command="{Binding ToggleSearchPanelCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Search Text">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="🔎" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Search" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Find &amp; Replace">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="↔" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Replace" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Measure Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Measure" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Measure Distance">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="📏" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Distance" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Measure Area">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="📐" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Area" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </TabItem>
+
+                        <!-- COMMENT TAB -->
+                        <TabItem Header="COMMENT">
+                            <Border Background="#FFFFFF" Padding="8,6" BorderBrush="#D0D0D0" BorderThickness="1,0,1,1">
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- Notes Group -->
+                                    <Border Padding="4,0,8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Notes" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Sticky Note">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="📌" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Note" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Text Box">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="T" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Text Box" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Highlight Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Highlight" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Highlight Text">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <Border Background="#FFFF00" Padding="6,2" CornerRadius="2">
+                                                            <TextBlock Text="ab" FontSize="16" FontWeight="Bold"/>
+                                                        </Border>
+                                                        <TextBlock Text="Highlight" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Underline">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="U" FontSize="22" FontWeight="Bold" TextDecorations="Underline" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Underline" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Strikethrough">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="S" FontSize="22" FontWeight="Bold" TextDecorations="Strikethrough" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Strikeout" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Drawing Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Drawing" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Pencil">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="✏️" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Pencil" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Eraser">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="🧽" FontSize="22" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Eraser" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                    <Rectangle Width="1" Fill="#E0E0E0" Margin="4,4"/>
+
+                                    <!-- Shapes Group -->
+                                    <Border Padding="8,0">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Bottom" Text="Shapes" FontSize="10" Foreground="#666666" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                            <StackPanel Orientation="Horizontal" Spacing="2">
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Rectangle">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <Border BorderBrush="#333333" BorderThickness="2" Width="24" Height="18" Margin="0,4"/>
+                                                        <TextBlock Text="Rectangle" FontSize="9" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Circle">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <Ellipse Stroke="#333333" StrokeThickness="2" Width="22" Height="22" Margin="0,2"/>
+                                                        <TextBlock Text="Circle" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Arrow">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <TextBlock Text="→" FontSize="24" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="Arrow" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                <Button Classes="ribbon-large" ToolTip.Tip="Line">
+                                                    <StackPanel HorizontalAlignment="Center">
+                                                        <Line StartPoint="0,20" EndPoint="24,4" Stroke="#333333" StrokeThickness="2" Margin="0,2"/>
+                                                        <TextBlock Text="Line" FontSize="10" Foreground="#333333" HorizontalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </TabItem>
+                    </TabControl>
+                </Border>
+            </DockPanel>
+        </Border>
+
+        <!-- Search Panel (Collapsible) -->
+        <Border DockPanel.Dock="Top"
+                Background="#FFFACD"
+                BorderBrush="#F0E68C"
+                BorderThickness="0,0,0,1"
+                Padding="12,8"
+                IsVisible="{Binding IsSearchPanelVisible}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="🔍"
+                           FontSize="16"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <TextBox Text="{Binding SearchViewModel.SearchQuery}"
+                             Watermark="Search in document..."
+                             Width="300"
+                             VerticalAlignment="Center"/>
+
+                    <Button Content="Search"
+                            Command="{Binding SearchViewModel.SearchCommand}"
+                            Padding="10,6"/>
+                    <Button Content="◀ Previous"
+                            Command="{Binding SearchViewModel.PreviousResultCommand}"
+                            Padding="10,6"/>
+                    <Button Content="Next ▶"
+                            Command="{Binding SearchViewModel.NextResultCommand}"
+                            Padding="10,6"/>
+
+                    <TextBlock Text="{Binding SearchViewModel.StatusText}"
+                               VerticalAlignment="Center"
+                               Margin="8,0"
+                               Foreground="#666666"/>
+
+                    <CheckBox Content="Match case"
+                              IsChecked="{Binding SearchViewModel.MatchCase}"
+                              VerticalAlignment="Center"
+                              Margin="16,0,0,0"/>
+                    <CheckBox Content="Whole words"
+                              IsChecked="{Binding SearchViewModel.WholeWord}"
+                              VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Button Grid.Column="2"
+                        Content="✕"
+                        Command="{Binding CloseSearchPanelCommand}"
+                        Padding="10,6"
+                        ToolTip.Tip="Close Search"
+                        FontWeight="Bold"/>
+            </Grid>
+        </Border>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom"
+                Background="#F5F5F5"
+                BorderBrush="#E0E0E0"
+                BorderThickness="0,1,0,0"
+                Padding="6,4"
+                IsVisible="{Binding IsStatusBarVisible}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Status Text -->
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusText}"
+                           VerticalAlignment="Center"
+                           FontSize="12"/>
+
+                <!-- Navigation Controls -->
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            Spacing="4"
+                            VerticalAlignment="Center">
+                    <Button Command="{Binding FirstPageCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="First Page (Home)"
+                            Background="Transparent" BorderThickness="0" Padding="4,2" Cursor="Hand">
+                        <TextBlock Text="|◀" FontSize="11" VerticalAlignment="Center"/>
+                    </Button>
+                    <Button Command="{Binding PreviousPageCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Previous (Page Up)"
+                            Background="Transparent" BorderThickness="0" Padding="4,2" Cursor="Hand">
+                        <TextBlock Text="◀" FontSize="11" VerticalAlignment="Center"/>
+                    </Button>
+                    <Border Background="#FFFFFF" BorderBrush="#D0D0D0" BorderThickness="1" CornerRadius="3" Padding="4,2" Margin="4,0" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                            <TextBox x:Name="PageNumberTextBox" Text="{Binding CurrentPageNumber}" IsEnabled="{Binding IsDocumentLoaded}"
+                                     Width="28" TextAlignment="Center" BorderThickness="0" Background="Transparent"
+                                     Padding="0" FontSize="12" VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                     CaretBrush="#333333" SelectionBrush="#3399FF"/>
+                            <TextBlock Text="{Binding TotalPages, StringFormat='/ {0}'}" VerticalAlignment="Center" Foreground="#666666" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+                    <Button Command="{Binding NextPageCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Next (Page Down)"
+                            Background="Transparent" BorderThickness="0" Padding="4,2" Cursor="Hand">
+                        <TextBlock Text="▶" FontSize="11" VerticalAlignment="Center"/>
+                    </Button>
+                    <Button Command="{Binding LastPageCommand}" IsEnabled="{Binding IsDocumentLoaded}" ToolTip.Tip="Last Page (End)"
+                            Background="Transparent" BorderThickness="0" Padding="4,2" Cursor="Hand">
+                        <TextBlock Text="▶|" FontSize="11" VerticalAlignment="Center"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content: Sidebar + Document Area -->
+        <Grid Background="#C8C8C8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250" MinWidth="150" MaxWidth="500"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Sidebar Panel -->
+            <Border Grid.Column="0"
+                    Background="White"
+                    BorderBrush="#E0E0E0"
+                    BorderThickness="0,0,1,0"
+                    IsVisible="{Binding IsSidebarVisible}">
+                <DockPanel>
+                    <!-- Sidebar Tabs -->
+                    <Border DockPanel.Dock="Top" Background="#F5F5F5" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton Content="Thumbnails"
+                                         GroupName="SidebarTabs"
+                                         IsChecked="{Binding IsThumbnailsTabSelected}"
+                                         Padding="16,10"
+                                         Background="Transparent"
+                                         BorderThickness="0">
+                                <RadioButton.Styles>
+                                    <Style Selector="RadioButton">
+                                        <Setter Property="Template">
+                                            <ControlTemplate>
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter Content="{TemplateBinding Content}"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter>
+                                    </Style>
+                                    <Style Selector="RadioButton:checked">
+                                        <Setter Property="Background" Value="#FFFFFF"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Style>
+                                    <Style Selector="RadioButton:pointerover">
+                                        <Setter Property="Background" Value="#E8E8E8"/>
+                                    </Style>
+                                </RadioButton.Styles>
+                            </RadioButton>
+                            <RadioButton Content="Bookmarks"
+                                         GroupName="SidebarTabs"
+                                         IsChecked="{Binding IsBookmarksTabSelected}"
+                                         Padding="16,10"
+                                         Background="Transparent"
+                                         BorderThickness="0">
+                                <RadioButton.Styles>
+                                    <Style Selector="RadioButton">
+                                        <Setter Property="Template">
+                                            <ControlTemplate>
+                                                <Border Background="{TemplateBinding Background}"
+                                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                                        Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter Content="{TemplateBinding Content}"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter>
+                                    </Style>
+                                    <Style Selector="RadioButton:checked">
+                                        <Setter Property="Background" Value="#FFFFFF"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </Style>
+                                    <Style Selector="RadioButton:pointerover">
+                                        <Setter Property="Background" Value="#E8E8E8"/>
+                                    </Style>
+                                </RadioButton.Styles>
+                            </RadioButton>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Content Area -->
+                    <Grid>
+                        <!-- Thumbnails Panel -->
+                        <ScrollViewer x:Name="ThumbnailScrollViewer"
+                                      VerticalScrollBarVisibility="Auto"
+                                      Padding="8"
+                                      IsVisible="{Binding IsThumbnailsTabSelected}">
+                            <ItemsControl x:Name="ThumbnailItemsControl" ItemsSource="{Binding Thumbnails}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="vm:ThumbnailViewModel">
+                                        <Button Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateFromThumbnailCommand}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="0"
+                                                Margin="0,0,0,8"
+                                                Cursor="Hand">
+                                            <Panel>
+                                                <!-- Non-selected state -->
+                                                <Border Background="White"
+                                                        BorderBrush="#E0E0E0"
+                                                        BorderThickness="1"
+                                                        Padding="8"
+                                                        CornerRadius="4"
+                                                        IsVisible="{Binding !IsSelected}">
+                                                    <StackPanel Spacing="4">
+                                                        <Border Background="#FFFFFF"
+                                                                BorderBrush="#CCCCCC"
+                                                                BorderThickness="1"
+                                                                Height="150"
+                                                                CornerRadius="2">
+                                                            <Grid>
+                                                                <TextBlock Text="⏳"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"
+                                                                           FontSize="24"
+                                                                           IsVisible="{Binding IsLoading}"/>
+                                                                <Image Source="{Binding ThumbnailImage}"
+                                                                       Stretch="Uniform"
+                                                                       IsVisible="{Binding !IsLoading}"/>
+                                                            </Grid>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding PageNumber, StringFormat='Page {0}'}"
+                                                                   HorizontalAlignment="Center"
+                                                                   FontSize="12"
+                                                                   Foreground="#555555"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <!-- Selected state -->
+                                                <Border Background="#F9F9F9"
+                                                        BorderBrush="#4A90E2"
+                                                        BorderThickness="2"
+                                                        Padding="8"
+                                                        CornerRadius="4"
+                                                        IsVisible="{Binding IsSelected}">
+                                                    <StackPanel Spacing="4">
+                                                        <Border Background="#FFFFFF"
+                                                                BorderBrush="#CCCCCC"
+                                                                BorderThickness="1"
+                                                                Height="150"
+                                                                CornerRadius="2">
+                                                            <Grid>
+                                                                <TextBlock Text="⏳"
+                                                                           HorizontalAlignment="Center"
+                                                                           VerticalAlignment="Center"
+                                                                           FontSize="24"
+                                                                           IsVisible="{Binding IsLoading}"/>
+                                                                <Image Source="{Binding ThumbnailImage}"
+                                                                       Stretch="Uniform"
+                                                                       IsVisible="{Binding !IsLoading}"/>
+                                                            </Grid>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding PageNumber, StringFormat='Page {0}'}"
+                                                                   HorizontalAlignment="Center"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="#4A90E2"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Panel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- Bookmarks Panel -->
+                        <DockPanel IsVisible="{Binding IsBookmarksTabSelected}">
+                            <!-- No bookmarks message -->
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Spacing="8"
+                                        IsVisible="{Binding !HasBookmarks}">
+                                <TextBlock Text="📖"
+                                           FontSize="48"
+                                           HorizontalAlignment="Center"
+                                           Opacity="0.4"/>
+                                <TextBlock Text="No bookmarks"
+                                           FontSize="14"
+                                           Foreground="#999999"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="This document does not contain bookmarks"
+                                           FontSize="11"
+                                           Foreground="#AAAAAA"
+                                           HorizontalAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           TextAlignment="Center"
+                                           MaxWidth="200"/>
+                            </StackPanel>
+
+                            <!-- Bookmarks TreeView -->
+                            <TreeView ItemsSource="{Binding Bookmarks}"
+                                      IsVisible="{Binding HasBookmarks}"
+                                      Padding="8">
+                                <TreeView.ItemTemplate>
+                                    <TreeDataTemplate ItemsSource="{Binding Children}">
+                                        <Button Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).NavigateFromBookmarkCommand}"
+                                                CommandParameter="{Binding}"
+                                                Background="Transparent"
+                                                BorderThickness="0"
+                                                Padding="4,6"
+                                                Cursor="Hand"
+                                                HorizontalAlignment="Stretch"
+                                                HorizontalContentAlignment="Left">
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="📑" FontSize="12" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Title}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           MaxWidth="180"/>
+                                                <TextBlock Text="{Binding PageNumber, StringFormat='(p.{0})'}"
+                                                           FontSize="10"
+                                                           Foreground="#888888"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </TreeDataTemplate>
+                                </TreeView.ItemTemplate>
+                            </TreeView>
+                        </DockPanel>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <!-- Splitter -->
+            <GridSplitter Grid.Column="1"
+                          Background="#E0E0E0"
+                          ResizeDirection="Columns"
+                          HorizontalAlignment="Stretch"
+                          IsVisible="{Binding IsSidebarVisible}"/>
+
+            <!-- Main Document Area -->
+            <Grid Grid.Column="2" Background="#C8C8C8">
+                <!-- Loading Progress Overlay -->
+                <Border Background="#80000000"
+                        IsVisible="{Binding IsLoading}"
+                        ZIndex="100">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                        <TextBlock Text="Loading..." FontSize="18" Foreground="White" HorizontalAlignment="Center"/>
+                        <ProgressBar Value="{Binding LoadingProgress}" Maximum="100" Width="300" Height="20"/>
+                        <TextBlock Text="{Binding LoadingProgress, StringFormat='{}{0:F0}%'}" Foreground="White" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Single Page View -->
+                <ScrollViewer x:Name="DocumentScrollViewer"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Auto"
+                              IsVisible="{Binding IsDocumentLoaded}">
+                    <!-- Context Menu -->
+                    <ScrollViewer.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Zoom In" Command="{Binding ZoomInCommand}"/>
+                            <MenuItem Header="Zoom Out" Command="{Binding ZoomOutCommand}"/>
+                            <MenuItem Header="Actual Size" Command="{Binding SetActualSizeCommand}"/>
+                            <MenuItem Header="Fit to Width" Command="{Binding SetFitWidthCommand}"/>
+                            <MenuItem Header="Fit to Page" Command="{Binding SetFitPageCommand}"/>
+                            <Separator/>
+                            <MenuItem Header="Rotate Clockwise" Command="{Binding RotateClockwiseCommand}"/>
+                            <MenuItem Header="Rotate Counter-Clockwise" Command="{Binding RotateCounterClockwiseCommand}"/>
+                            <Separator/>
+                            <MenuItem Header="First Page" Command="{Binding FirstPageCommand}"/>
+                            <MenuItem Header="Previous Page" Command="{Binding PreviousPageCommand}"/>
+                            <MenuItem Header="Next Page" Command="{Binding NextPageCommand}"/>
+                            <MenuItem Header="Last Page" Command="{Binding LastPageCommand}"/>
+                            <Separator/>
+                            <MenuItem Header="Print..." Command="{Binding PrintCommand}"/>
+                        </ContextMenu>
+                    </ScrollViewer.ContextMenu>
+                    <Panel>
+                        <!-- Single Page Mode -->
+                        <Border Background="White"
+                                Margin="40"
+                                BoxShadow="0 4 8 0 #40000000"
+                                CornerRadius="2"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                IsVisible="{Binding IsSinglePageMode}">
+                            <!-- Image displayed at native size - PDF is re-rendered at correct DPI for each zoom level -->
+                            <Image Source="{Binding CurrentPageImage}"
+                                   Stretch="None"/>
+                        </Border>
+
+                        <!-- Two-Page Mode -->
+                        <Grid Margin="40"
+                              HorizontalAlignment="Center"
+                              IsVisible="{Binding IsTwoPageMode}">
+                            <StackPanel Orientation="Horizontal"
+                                        Spacing="20"
+                                        HorizontalAlignment="Center">
+                                <!-- Left Page -->
+                                <Border Background="White"
+                                        BoxShadow="0 4 8 0 #40000000"
+                                        CornerRadius="2">
+                                    <Image Source="{Binding CurrentPageImage}"
+                                           Stretch="None"/>
+                                </Border>
+                                <!-- Right Page (if available) -->
+                                <Border Background="White"
+                                        BoxShadow="0 4 8 0 #40000000"
+                                        CornerRadius="2"
+                                        IsVisible="{Binding SecondPageImage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                                    <Image Source="{Binding SecondPageImage}"
+                                           Stretch="None"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Continuous Mode -->
+                        <ItemsControl ItemsSource="{Binding Pages}"
+                                      IsVisible="{Binding IsContinuousMode}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Spacing="20" Margin="40"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="vm:PageViewModel">
+                                    <Border Background="White"
+                                            BoxShadow="0 4 8 0 #40000000"
+                                            CornerRadius="2"
+                                            HorizontalAlignment="Center"
+                                            Width="{Binding Width}"
+                                            Height="{Binding Height}">
+                                        <Grid>
+                                            <!-- Page image -->
+                                            <Image Source="{Binding PageImage}"
+                                                   Stretch="Uniform"/>
+                                            <!-- Loading indicator overlay -->
+                                            <Border Background="#F8F8F8"
+                                                    IsVisible="{Binding IsLoading}">
+                                                <StackPanel HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center">
+                                                    <TextBlock Text="⏳" FontSize="32" HorizontalAlignment="Center"/>
+                                                    <TextBlock Text="{Binding PageNumber, StringFormat='Loading page {0}...'}"
+                                                               FontSize="14"
+                                                               Foreground="#666666"
+                                                               Margin="0,8,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Panel>
+                </ScrollViewer>
+
+                <!-- Welcome Screen -->
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            IsVisible="{Binding !IsDocumentLoaded}"
+                            Spacing="24">
+                    <TextBlock Text="📄"
+                               FontSize="96"
+                               HorizontalAlignment="Center"
+                               Opacity="0.3"/>
+                    <TextBlock Text="Professional PDF Viewer"
+                               FontSize="32"
+                               FontWeight="Light"
+                               HorizontalAlignment="Center"
+                               Foreground="#333333"/>
+                    <TextBlock Text="Open a PDF document to get started"
+                               FontSize="16"
+                               Foreground="#999999"
+                               HorizontalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal"
+                                Spacing="12"
+                                HorizontalAlignment="Center"
+                                Margin="0,16,0,0">
+                        <Button Content="📂 Open Document"
+                                Click="OpenDocument_Click"
+                                Padding="24,12"
+                                FontSize="16"
+                                FontWeight="SemiBold"/>
+                        <Button Content="ℹ️ Help"
+                                Padding="24,12"
+                                FontSize="16"/>
+                    </StackPanel>
+
+                    <!-- Quick Tips -->
+                    <Border Background="#F0F8FF"
+                            BorderBrush="#B0D4FF"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="20"
+                            Margin="0,32,0,0"
+                            MaxWidth="500">
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="⌨️ Keyboard Shortcuts"
+                                       FontWeight="SemiBold"
+                                       FontSize="14"
+                                       Foreground="#333333"/>
+                            <StackPanel Spacing="4" Margin="0,8,0,0">
+                                <TextBlock Foreground="#666666">
+                                    <Run Text="Ctrl+O" FontFamily="Consolas" FontWeight="SemiBold"/>
+                                    <Run Text=" - Open document"/>
+                                </TextBlock>
+                                <TextBlock Foreground="#666666">
+                                    <Run Text="Ctrl+F" FontFamily="Consolas" FontWeight="SemiBold"/>
+                                    <Run Text=" - Search"/>
+                                </TextBlock>
+                                <TextBlock Foreground="#666666">
+                                    <Run Text="Ctrl+Plus/Minus" FontFamily="Consolas" FontWeight="SemiBold"/>
+                                    <Run Text=" - Zoom"/>
+                                </TextBlock>
+                                <TextBlock Foreground="#666666">
+                                    <Run Text="F11" FontFamily="Consolas" FontWeight="SemiBold"/>
+                                    <Run Text=" - Full screen"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </DockPanel>
+
+</Window>
