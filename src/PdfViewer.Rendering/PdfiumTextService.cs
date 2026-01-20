@@ -65,7 +65,8 @@ public class PdfiumTextService : ITextSearchService
                     PageNumber = pageIndex + 1, // 1-based for display
                     StartIndex = match.Index,
                     Length = match.Length,
-                    ContextSnippet = snippet.Replace("\n", " ").Replace("\r", "").Trim()
+                    ContextSnippet = snippet.Replace("\n", " ").Replace("\r", "").Trim(),
+                    MatchedText = match.Value
                 });
             }
         }

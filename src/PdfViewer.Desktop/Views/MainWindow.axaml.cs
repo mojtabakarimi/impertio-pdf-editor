@@ -1,11 +1,14 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using PdfViewer.Core.Models;
 using PdfViewer.Desktop.ViewModels;
 using System;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,6 +21,7 @@ public partial class MainWindow : Window
     private ScrollViewer? _thumbnailScrollViewer;
     private MenuItem? _recentFilesMenu;
     private TextBox? _pageNumberTextBox;
+    private Canvas? _highlightCanvas;
     private bool _isPanning = false;
     private Point _panStartPoint;
     private Vector _panStartOffset;
@@ -50,6 +54,18 @@ public partial class MainWindow : Window
             UpdateViewportSize();
         }
 
+        // Subscribe to scroll-to-page event for continuous mode navigation
+        if (DataContext is MainWindowViewModel viewModel)
+        {
+            viewModel.ScrollToPageRequested += OnScrollToPageRequested;
+
+            // Subscribe to highlight rectangles changes
+            viewModel.HighlightRects.CollectionChanged += OnHighlightRectsChanged;
+        }
+
+        // Setup Highlight Canvas
+        _highlightCanvas = this.FindControl<Canvas>("HighlightCanvas");
+
         // Setup Recent Files menu
         _recentFilesMenu = this.FindControl<MenuItem>("RecentFilesMenu");
         if (_recentFilesMenu != null)
@@ -66,6 +82,43 @@ public partial class MainWindow : Window
 
         // Setup Thumbnail ScrollViewer for auto-scrolling
         _thumbnailScrollViewer = this.FindControl<ScrollViewer>("ThumbnailScrollViewer");
+    }
+
+    private void OnHighlightRectsChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (_highlightCanvas == null)
+            return;
+
+        // Clear existing highlights
+        _highlightCanvas.Children.Clear();
+
+        if (DataContext is not MainWindowViewModel viewModel)
+            return;
+
+        Console.WriteLine($"[HighlightCanvas] Updating highlights, count: {viewModel.HighlightRects.Count}");
+
+        // Add new highlights
+        foreach (var rect in viewModel.HighlightRects)
+        {
+            var highlight = new Rectangle
+            {
+                Width = rect.Width,
+                Height = rect.Height,
+                Fill = rect.IsCurrentMatch
+                    ? new SolidColorBrush(Color.FromRgb(255, 165, 0)) // Orange for current
+                    : new SolidColorBrush(Color.FromRgb(255, 255, 0)), // Yellow for others
+                Opacity = 0.5,
+                RadiusX = 2,
+                RadiusY = 2
+            };
+
+            Canvas.SetLeft(highlight, rect.Left);
+            Canvas.SetTop(highlight, rect.Top);
+
+            _highlightCanvas.Children.Add(highlight);
+
+            Console.WriteLine($"[HighlightCanvas] Added highlight at ({rect.Left:F0}, {rect.Top:F0}) size ({rect.Width:F0}x{rect.Height:F0})");
+        }
     }
 
     private void OnRecentFilesMenuOpened(object? sender, RoutedEventArgs e)
@@ -122,6 +175,48 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void SearchTextBox_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel viewModel) return;
+        if (viewModel.SearchViewModel == null) return;
+
+        if (e.Key == Key.Enter)
+        {
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+            {
+                // Shift+Enter: Previous result
+                if (viewModel.SearchViewModel.Results.Count > 0)
+                {
+                    await viewModel.SearchViewModel.PreviousResultCommand.ExecuteAsync(null);
+                }
+                else
+                {
+                    await viewModel.SearchViewModel.SearchCommand.ExecuteAsync(null);
+                }
+            }
+            else
+            {
+                // Enter: Search or Next result
+                if (viewModel.SearchViewModel.Results.Count > 0 &&
+                    !string.IsNullOrEmpty(viewModel.SearchViewModel.SearchQuery))
+                {
+                    await viewModel.SearchViewModel.NextResultCommand.ExecuteAsync(null);
+                }
+                else
+                {
+                    await viewModel.SearchViewModel.SearchCommand.ExecuteAsync(null);
+                }
+            }
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            viewModel.CloseSearchPanelCommand.Execute(null);
+            _documentScrollViewer?.Focus();
+            e.Handled = true;
+        }
+    }
+
     private void OnDocumentViewerSizeChanged(object? sender, SizeChangedEventArgs e)
     {
         UpdateViewportSize();
@@ -172,6 +267,33 @@ public partial class MainWindow : Window
         var centeredOffset = Math.Max(0, targetOffset - (viewportHeight / 2) + (thumbnailHeight / 2));
 
         _thumbnailScrollViewer.Offset = new Vector(0, centeredOffset);
+    }
+
+    private void OnScrollToPageRequested(int pageNumber)
+    {
+        if (_documentScrollViewer == null) return;
+        if (DataContext is not MainWindowViewModel viewModel) return;
+        if (!viewModel.IsContinuousMode) return;
+        if (pageNumber < 1 || pageNumber > viewModel.Pages.Count) return;
+
+        // Calculate the scroll offset for the target page
+        double targetOffset = 0;
+        const double pageGap = 20; // Gap between pages in continuous mode
+        const double margin = 40; // Top margin
+
+        for (int i = 0; i < pageNumber - 1; i++)
+        {
+            if (i < viewModel.Pages.Count)
+            {
+                targetOffset += viewModel.Pages[i].Height + pageGap;
+            }
+        }
+
+        targetOffset += margin; // Add top margin
+
+        // Scroll to the target page
+        _documentScrollViewer.Offset = new Vector(_documentScrollViewer.Offset.X, targetOffset);
+        _lastScrolledToPage = pageNumber;
     }
 
     private async void UpdateViewportSize()
@@ -393,6 +515,10 @@ public partial class MainWindow : Window
         if (DataContext is not MainWindowViewModel viewModel) return;
         if (_documentScrollViewer == null) return;
 
+        // Only pan with left mouse button
+        var point = e.GetCurrentPoint(_documentScrollViewer);
+        if (!point.Properties.IsLeftButtonPressed) return;
+
         if (viewModel.CurrentTool == ToolMode.Hand)
         {
             _isPanning = true;
@@ -529,7 +655,7 @@ public partial class MainWindow : Window
         var storageProvider = StorageProvider;
 
         var defaultFileName = !string.IsNullOrEmpty(defaultPath)
-            ? Path.GetFileName(defaultPath)
+            ? System.IO.Path.GetFileName(defaultPath)
             : "document.pdf";
 
         var file = await storageProvider.SaveFilePickerAsync(new FilePickerSaveOptions

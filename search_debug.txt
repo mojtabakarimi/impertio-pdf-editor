@@ -1,0 +1,18 @@
+[03:36:13] Searching 'this' from page 0 to 190 (total pages: 191)
+  -> Found 6 matches. Pages with text: 186, Pages without text: 5
+[03:52:24] Searching 'the' from page 0 to 190 (total pages: 191)
+  -> Found 69 matches. Pages with text: 186, Pages without text: 5
+[03:52:24] Searching 'this' from page 0 to 190 (total pages: 191)
+  -> Found 6 matches. Pages with text: 186, Pages without text: 5
+[03:52:24] Searching 'and' from page 0 to 190 (total pages: 191)
+  -> Found 38 matches. Pages with text: 186, Pages without text: 5
+[03:52:24] Searching 'a' from page 0 to 190 (total pages: 191)
+  -> Found 517 matches. Pages with text: 186, Pages without text: 5
+[03:52:24] Searching 'of' from page 0 to 190 (total pages: 191)
+  -> Found 45 matches. Pages with text: 186, Pages without text: 5
+[03:52:24] Searching 'page' from page 0 to 190 (total pages: 191)
+  -> Found 0 matches. Pages with text: 186, Pages without text: 5
+[03:52:24] Searching '1' from page 0 to 190 (total pages: 191)
+  -> Found 231 matches. Pages with text: 186, Pages without text: 5
+[03:52:25] Searching '2' from page 0 to 190 (total pages: 191)
+  -> Found 408 matches. Pages with text: 186, Pages without text: 5

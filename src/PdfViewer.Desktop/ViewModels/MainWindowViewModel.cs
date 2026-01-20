@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
@@ -90,6 +91,16 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private SearchViewModel? _searchViewModel;
 
+    // Search highlighting for current page
+    [ObservableProperty]
+    private int _currentPageMatchCount;
+
+    [ObservableProperty]
+    private string _currentPageMatchText = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<HighlightRectViewModel> _highlightRects = new();
+
     // Full Screen Mode
     [ObservableProperty]
     private bool _isFullScreen;
@@ -154,6 +165,116 @@ public partial class MainWindowViewModel : ViewModelBase
     private async Task NavigateToPageFromSearch(int pageNumber)
     {
         await NavigateToPage(pageNumber);
+        UpdateCurrentPageMatchInfo();
+    }
+
+    private void UpdateCurrentPageMatchInfo()
+    {
+        if (SearchViewModel == null || SearchViewModel.Results.Count == 0)
+        {
+            CurrentPageMatchCount = 0;
+            CurrentPageMatchText = string.Empty;
+            HighlightRects.Clear();
+            return;
+        }
+
+        CurrentPageMatchCount = SearchViewModel.GetResultCountForPage(CurrentPageNumber);
+        if (CurrentPageMatchCount > 0)
+        {
+            var currentResultOnPage = SearchViewModel.Results
+                .Select((r, i) => new { Result = r, Index = i })
+                .Where(x => x.Result.PageNumber == CurrentPageNumber)
+                .ToList();
+
+            var selectedIndex = SearchViewModel.CurrentResultIndex;
+            var matchOnPage = currentResultOnPage.FindIndex(x => x.Index == selectedIndex);
+
+            if (matchOnPage >= 0)
+            {
+                CurrentPageMatchText = $"Match {matchOnPage + 1} of {CurrentPageMatchCount} on this page";
+            }
+            else
+            {
+                CurrentPageMatchText = $"{CurrentPageMatchCount} match{(CurrentPageMatchCount > 1 ? "es" : "")} on this page";
+            }
+
+            // Update highlight rectangles for current page
+            UpdateHighlightRects(matchOnPage);
+        }
+        else
+        {
+            CurrentPageMatchText = string.Empty;
+            HighlightRects.Clear();
+        }
+    }
+
+    private void UpdateHighlightRects(int currentMatchIndex)
+    {
+        HighlightRects.Clear();
+
+        try
+        {
+            var document = _documentService.CurrentInternalDocument;
+            if (document == null || SearchViewModel == null || string.IsNullOrEmpty(SearchViewModel.SearchQuery))
+            {
+                Console.WriteLine("[Highlight] No document or search query");
+                return;
+            }
+
+            // Get text bounds from PDFium
+            var pageIndex = CurrentPageNumber - 1;
+            Console.WriteLine($"[Highlight] Finding bounds for '{SearchViewModel.SearchQuery}' on page {CurrentPageNumber}");
+            var bounds = document.FindTextBounds(pageIndex, SearchViewModel.SearchQuery,
+                SearchViewModel.MatchCase, SearchViewModel.WholeWord);
+
+            Console.WriteLine($"[Highlight] Found {bounds.Count} bounds");
+
+            if (bounds.Count == 0)
+                return;
+
+            // Get page size for coordinate transformation
+            var (pageWidth, pageHeight) = _documentService.GetPageSize(pageIndex);
+            Console.WriteLine($"[Highlight] Page size: {pageWidth} x {pageHeight}");
+
+            // Convert PDF coordinates to screen coordinates
+            // PDF coordinates: origin at bottom-left, Y increases upward
+            // Screen coordinates: origin at top-left, Y increases downward
+            // The rendered image is at ZoomFactor * DPI scale
+            var dpiScale = 96.0 / 72.0; // Default DPI 96, PDF points at 72 DPI
+            var scale = ZoomFactor * dpiScale;
+            Console.WriteLine($"[Highlight] Scale: {scale} (Zoom: {ZoomFactor}, DPI Scale: {dpiScale})");
+
+            int matchIndex = 0;
+            foreach (var rect in bounds)
+            {
+                // Transform PDF coordinates to screen coordinates
+                var screenLeft = rect.Left * scale;
+                var screenTop = (pageHeight - rect.Top) * scale; // Flip Y axis
+                var screenWidth = rect.Width * scale;
+                var screenHeight = rect.Height * scale;
+
+                Console.WriteLine($"[Highlight] Match {matchIndex}: PDF({rect.Left:F1},{rect.Top:F1},{rect.Width:F1},{rect.Height:F1}) -> Screen({screenLeft:F1},{screenTop:F1},{screenWidth:F1},{screenHeight:F1})");
+
+                var highlightVm = new HighlightRectViewModel
+                {
+                    Left = screenLeft,
+                    Top = screenTop,
+                    Width = screenWidth,
+                    Height = screenHeight,
+                    IsCurrentMatch = matchIndex == currentMatchIndex
+                };
+
+                HighlightRects.Add(highlightVm);
+                matchIndex++;
+            }
+
+            Console.WriteLine($"[Highlight] Added {HighlightRects.Count} highlight rectangles");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating highlight rects: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+        }
     }
 
     [RelayCommand]
@@ -512,6 +633,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         Pages.Clear();
 
+        // DPI scale factor - must match the render DPI
+        var dpiScale = _renderOptions.Dpi / 72.0;
+
         // Create page view models for all pages
         for (int i = 1; i <= TotalPages; i++)
         {
@@ -522,17 +646,18 @@ public partial class MainWindowViewModel : ViewModelBase
                 IsVisible = false
             };
 
-            // Get page dimensions
+            // Get page dimensions - scale to match rendered image size
             try
             {
                 var (width, height) = _documentService.GetPageSize(i - 1);
-                pageVm.Width = width * ZoomFactor;
-                pageVm.Height = height * ZoomFactor;
+                // Container size must match rendered image size exactly for crisp display
+                pageVm.Width = width * ZoomFactor * dpiScale;
+                pageVm.Height = height * ZoomFactor * dpiScale;
             }
             catch
             {
-                pageVm.Width = 612; // Default letter width
-                pageVm.Height = 792; // Default letter height
+                pageVm.Width = 612 * dpiScale; // Default letter width
+                pageVm.Height = 792 * dpiScale; // Default letter height
             }
 
             Pages.Add(pageVm);
@@ -560,24 +685,32 @@ public partial class MainWindowViewModel : ViewModelBase
         if (pageIndex < 0 || pageIndex >= Pages.Count) return;
 
         var pageVm = Pages[pageIndex];
+
+        Console.WriteLine($"[LoadPage] Page {pageIndex}: PageImage is {(pageVm.PageImage == null ? "NULL" : "NOT NULL")}, IsLoading={pageVm.IsLoading}");
+
         if (pageVm.PageImage != null) return; // Already loaded
 
         try
         {
+            Console.WriteLine($"[LoadPage] Rendering page {pageIndex} with ZoomFactor={_renderOptions.ZoomFactor}");
             var pageData = await _documentService.RenderPageAsync(pageIndex, _renderOptions);
+            Console.WriteLine($"[LoadPage] Page {pageIndex} rendered, data size: {pageData.Length} bytes");
 
             await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (pageIndex < Pages.Count)
                 {
                     using var ms = new MemoryStream(pageData);
-                    Pages[pageIndex].PageImage = new Bitmap(ms);
+                    var bitmap = new Bitmap(ms);
+                    Console.WriteLine($"[LoadPage] Page {pageIndex} bitmap created: {bitmap.PixelSize.Width}x{bitmap.PixelSize.Height}");
+                    Pages[pageIndex].PageImage = bitmap;
                     Pages[pageIndex].IsLoading = false;
                 }
             });
         }
-        catch
+        catch (Exception ex)
         {
+            Console.WriteLine($"[LoadPage] Error loading page {pageIndex}: {ex.Message}");
             if (pageIndex < Pages.Count)
             {
                 Pages[pageIndex].IsLoading = false;
@@ -633,11 +766,15 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task ZoomIn()
     {
+        Console.WriteLine($"[ZoomIn] Before: ZoomFactor={ZoomFactor}");
         ZoomMode = ZoomMode.Manual;
         ZoomFactor = Math.Min(ZoomFactor + 0.25, 5.0);
         _renderOptions.ZoomFactor = ZoomFactor;
+        Console.WriteLine($"[ZoomIn] After: ZoomFactor={ZoomFactor}, RenderOptions.ZoomFactor={_renderOptions.ZoomFactor}");
         _documentService.ClearCache();
+        Console.WriteLine("[ZoomIn] Cache cleared, rendering...");
         await RenderCurrentPage();
+        Console.WriteLine("[ZoomIn] Render complete");
     }
 
     [RelayCommand]
@@ -696,6 +833,7 @@ public partial class MainWindowViewModel : ViewModelBase
         ZoomMode = ZoomMode.ActualSize;
         ZoomFactor = 1.0;
         _renderOptions.ZoomFactor = ZoomFactor;
+        _documentService.ClearCache();
         await RenderCurrentPage();
     }
 
@@ -744,6 +882,7 @@ public partial class MainWindowViewModel : ViewModelBase
             // Clamp zoom factor to reasonable bounds
             ZoomFactor = Math.Clamp(ZoomFactor, 0.1, 10.0);
             _renderOptions.ZoomFactor = ZoomFactor;
+            _documentService.ClearCache();
             await RenderCurrentPage();
         }
         catch
@@ -755,6 +894,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private bool CanNavigatePrevious() => IsDocumentLoaded && CurrentPageNumber > 1;
     private bool CanNavigateNext() => IsDocumentLoaded && CurrentPageNumber < TotalPages;
+
+    // Event for requesting scroll to a specific page in continuous mode
+    public event Action<int>? ScrollToPageRequested;
 
     private async Task NavigateToPage(int pageNumber)
     {
@@ -769,6 +911,13 @@ public partial class MainWindowViewModel : ViewModelBase
 
         CurrentPageNumber = pageNumber;
         UpdateThumbnailSelection();
+
+        // In continuous mode, request scroll to the page
+        if (IsContinuousMode)
+        {
+            ScrollToPageRequested?.Invoke(pageNumber);
+        }
+
         await RenderCurrentPage();
 
         PreviousPageCommand.NotifyCanExecuteChanged();
@@ -786,7 +935,15 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             StatusText = $"Loading page {CurrentPageNumber} of {TotalPages}...";
 
-            // Render first page at current zoom level
+            // Handle Continuous mode - update all page sizes and re-render visible pages
+            if (IsContinuousMode)
+            {
+                await UpdateContinuousPagesForZoom();
+                StatusText = $"Page {CurrentPageNumber} of {TotalPages} | Zoom: {(int)(ZoomFactor * 100)}%";
+                return;
+            }
+
+            // Render first page at current zoom level (Single Page and Two-Page modes)
             var pageData = await _documentService.RenderPageAsync(pageIndex, _renderOptions);
 
             using (var ms = new MemoryStream(pageData))
@@ -809,11 +966,62 @@ public partial class MainWindowViewModel : ViewModelBase
             }
 
             StatusText = $"Page {CurrentPageNumber} of {TotalPages} | Zoom: {(int)(ZoomFactor * 100)}%";
+
+            // Update search match info for current page
+            UpdateCurrentPageMatchInfo();
         }
         catch (Exception ex)
         {
             StatusText = $"Error rendering page: {ex.Message}";
         }
+    }
+
+    private async Task UpdateContinuousPagesForZoom()
+    {
+        Console.WriteLine($"[Zoom] ========== ZOOM UPDATE START ==========");
+        Console.WriteLine($"[Zoom] ZoomFactor: {ZoomFactor}, RenderOptions.ZoomFactor: {_renderOptions.ZoomFactor}");
+        Console.WriteLine($"[Zoom] RenderOptions.Dpi: {_renderOptions.Dpi}");
+
+        // DPI scale factor - must match the render DPI
+        var dpiScale = _renderOptions.Dpi / 72.0;
+        Console.WriteLine($"[Zoom] DPI Scale: {dpiScale}");
+
+        // Update dimensions for all pages
+        for (int i = 0; i < Pages.Count; i++)
+        {
+            var pageVm = Pages[i];
+            try
+            {
+                var (width, height) = _documentService.GetPageSize(i);
+                var newWidth = width * ZoomFactor * dpiScale;
+                var newHeight = height * ZoomFactor * dpiScale;
+
+                Console.WriteLine($"[Zoom] Page {i}: Old size ({pageVm.Width:F0}x{pageVm.Height:F0}) -> New size ({newWidth:F0}x{newHeight:F0})");
+
+                // Container size must match rendered image size exactly for crisp display
+                pageVm.Width = newWidth;
+                pageVm.Height = newHeight;
+
+                // Clear the cached image so it gets re-rendered
+                Console.WriteLine($"[Zoom] Page {i}: Clearing PageImage (was {(pageVm.PageImage == null ? "NULL" : "NOT NULL")})");
+                pageVm.PageImage = null;
+                pageVm.IsLoading = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Zoom] Page {i}: Error - {ex.Message}");
+                pageVm.Width = 612 * ZoomFactor * dpiScale;
+                pageVm.Height = 792 * ZoomFactor * dpiScale;
+            }
+        }
+
+        // Re-render visible pages (around current page)
+        int startIndex = Math.Max(0, CurrentPageNumber - 3);
+        int endIndex = Math.Min(TotalPages - 1, CurrentPageNumber + 3);
+
+        Console.WriteLine($"[Zoom] Re-rendering pages {startIndex} to {endIndex}");
+        await LoadVisiblePagesAsync(startIndex, endIndex - startIndex + 1);
+        Console.WriteLine($"[Zoom] ========== ZOOM UPDATE END ==========");
     }
 
     // ========== NAVIGATION COMMANDS ==========
@@ -1021,6 +1229,7 @@ public partial class MainWindowViewModel : ViewModelBase
                     _renderOptions.ZoomFactor = ZoomFactor;
                     await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
                     {
+                        _documentService.ClearCache();
                         await RenderCurrentPage();
                     });
                 }

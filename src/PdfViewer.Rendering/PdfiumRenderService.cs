@@ -3,6 +3,7 @@ using PdfViewer.Core.Models;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Reflection;
 
 namespace PdfViewer.Rendering;
 
@@ -167,6 +168,122 @@ public class PdfiumRenderService : IPdfRenderService
             _disposed = true;
 
             GC.SuppressFinalize(this);
+        }
+
+        public List<HighlightRect> FindTextBounds(int pageNumber, string searchText, bool matchCase = false, bool wholeWord = false)
+        {
+            var results = new List<HighlightRect>();
+
+            if (string.IsNullOrEmpty(searchText) || _document == null)
+                return results;
+
+            try
+            {
+                // Get the native document handle via reflection
+                var docField = _document.GetType().GetField("_document", BindingFlags.NonPublic | BindingFlags.Instance);
+                if (docField == null)
+                    docField = _document.GetType().GetField("_file", BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (docField == null)
+                    return results;
+
+                var fileObj = docField.GetValue(_document);
+                if (fileObj == null)
+                    return results;
+
+                // Get the document handle
+                var handleProp = fileObj.GetType().GetProperty("Document", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                if (handleProp == null)
+                    return results;
+
+                var docHandle = (IntPtr?)handleProp.GetValue(fileObj);
+                if (docHandle == null || docHandle == IntPtr.Zero)
+                    return results;
+
+                // Load the page
+                var pageHandle = PdfiumNative.FPDF_LoadPage(docHandle.Value, pageNumber);
+                if (pageHandle == IntPtr.Zero)
+                    return results;
+
+                try
+                {
+                    // Load the text page
+                    var textPage = PdfiumNative.FPDFText_LoadPage(pageHandle);
+                    if (textPage == IntPtr.Zero)
+                        return results;
+
+                    try
+                    {
+                        // Build search flags
+                        uint flags = 0;
+                        if (matchCase) flags |= PdfiumNative.FPDF_MATCHCASE;
+                        if (wholeWord) flags |= PdfiumNative.FPDF_MATCHWHOLEWORD;
+
+                        // Start the search
+                        var findHandle = PdfiumNative.FPDFText_FindStart(textPage, searchText, flags, 0);
+                        if (findHandle == IntPtr.Zero)
+                            return results;
+
+                        try
+                        {
+                            // Get page size for coordinate conversion
+                            var pageSize = _document.PageSizes[pageNumber];
+
+                            // Find all matches
+                            while (PdfiumNative.FPDFText_FindNext(findHandle) != 0)
+                            {
+                                int charIndex = PdfiumNative.FPDFText_GetSchResultIndex(findHandle);
+                                int charCount = PdfiumNative.FPDFText_GetSchCount(findHandle);
+
+                                if (charCount <= 0)
+                                    continue;
+
+                                // Get bounding boxes for each character and merge them
+                                double minLeft = double.MaxValue;
+                                double maxRight = double.MinValue;
+                                double minBottom = double.MaxValue;
+                                double maxTop = double.MinValue;
+
+                                for (int i = 0; i < charCount; i++)
+                                {
+                                    double left, right, bottom, top;
+                                    if (PdfiumNative.FPDFText_GetCharBox(textPage, charIndex + i,
+                                        out left, out right, out bottom, out top) != 0)
+                                    {
+                                        if (left < minLeft) minLeft = left;
+                                        if (right > maxRight) maxRight = right;
+                                        if (bottom < minBottom) minBottom = bottom;
+                                        if (top > maxTop) maxTop = top;
+                                    }
+                                }
+
+                                if (minLeft != double.MaxValue)
+                                {
+                                    results.Add(new HighlightRect(minLeft, maxTop, maxRight, minBottom));
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            PdfiumNative.FPDFText_FindClose(findHandle);
+                        }
+                    }
+                    finally
+                    {
+                        PdfiumNative.FPDFText_ClosePage(textPage);
+                    }
+                }
+                finally
+                {
+                    PdfiumNative.FPDF_ClosePage(pageHandle);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error finding text bounds: {ex.Message}");
+            }
+
+            return results;
         }
     }
 }

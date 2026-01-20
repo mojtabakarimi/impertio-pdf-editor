@@ -16,6 +16,11 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
+    <Window.Resources>
+        <local:HighlightColorConverter x:Key="HighlightColorConverter"/>
+        <local:HighlightPositionConverter x:Key="HighlightPositionConverter"/>
+    </Window.Resources>
+
     <Window.Styles>
         <!-- Foxit/PDF-XChange Style Ribbon -->
         <Style Selector="TabControl.ribbon">
@@ -897,58 +902,137 @@
                 Background="#FFFACD"
                 BorderBrush="#F0E68C"
                 BorderThickness="0,0,0,1"
-                Padding="12,8"
                 IsVisible="{Binding IsSearchPanelVisible}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <StackPanel>
+                <!-- Search Input Row -->
+                <Grid Margin="12,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0"
-                           Text="🔍"
-                           FontSize="16"
-                           VerticalAlignment="Center"
-                           Margin="0,0,8,0"/>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                    <TextBox Text="{Binding SearchViewModel.SearchQuery}"
-                             Watermark="Search in document..."
-                             Width="300"
-                             VerticalAlignment="Center"/>
-
-                    <Button Content="Search"
-                            Command="{Binding SearchViewModel.SearchCommand}"
-                            Padding="10,6"/>
-                    <Button Content="◀ Previous"
-                            Command="{Binding SearchViewModel.PreviousResultCommand}"
-                            Padding="10,6"/>
-                    <Button Content="Next ▶"
-                            Command="{Binding SearchViewModel.NextResultCommand}"
-                            Padding="10,6"/>
-
-                    <TextBlock Text="{Binding SearchViewModel.StatusText}"
+                    <TextBlock Grid.Column="0"
+                               Text="🔍"
+                               FontSize="16"
                                VerticalAlignment="Center"
-                               Margin="8,0"
-                               Foreground="#666666"/>
+                               Margin="0,0,8,0"/>
 
-                    <CheckBox Content="Match case"
-                              IsChecked="{Binding SearchViewModel.MatchCase}"
-                              VerticalAlignment="Center"
-                              Margin="16,0,0,0"/>
-                    <CheckBox Content="Whole words"
-                              IsChecked="{Binding SearchViewModel.WholeWord}"
-                              VerticalAlignment="Center"/>
-                </StackPanel>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                        <TextBox x:Name="SearchTextBox"
+                                 Text="{Binding SearchViewModel.SearchQuery}"
+                                 Watermark="Search in document... (Enter to search)"
+                                 Width="300"
+                                 VerticalAlignment="Center"
+                                 KeyDown="SearchTextBox_KeyDown"/>
 
-                <Button Grid.Column="2"
-                        Content="✕"
-                        Command="{Binding CloseSearchPanelCommand}"
-                        Padding="10,6"
-                        ToolTip.Tip="Close Search"
-                        FontWeight="Bold"/>
-            </Grid>
+                        <Button Content="Search"
+                                Command="{Binding SearchViewModel.SearchCommand}"
+                                Padding="10,6"/>
+                        <Button Content="◀"
+                                Command="{Binding SearchViewModel.PreviousResultCommand}"
+                                Padding="10,6"
+                                ToolTip.Tip="Previous result (Shift+Enter)"/>
+                        <Button Content="▶"
+                                Command="{Binding SearchViewModel.NextResultCommand}"
+                                Padding="10,6"
+                                ToolTip.Tip="Next result (Enter)"/>
+
+                        <TextBlock Text="{Binding SearchViewModel.StatusText}"
+                                   VerticalAlignment="Center"
+                                   Margin="8,0"
+                                   FontWeight="SemiBold"
+                                   Foreground="#666666"/>
+
+                        <CheckBox Content="Match case"
+                                  IsChecked="{Binding SearchViewModel.MatchCase}"
+                                  VerticalAlignment="Center"
+                                  Margin="16,0,0,0"/>
+                        <CheckBox Content="Whole words"
+                                  IsChecked="{Binding SearchViewModel.WholeWord}"
+                                  VerticalAlignment="Center"/>
+
+                        <!-- Toggle Results Panel Button -->
+                        <Button Command="{Binding SearchViewModel.ToggleResultsPanelCommand}"
+                                Padding="10,6"
+                                IsVisible="{Binding SearchViewModel.Results.Count}"
+                                Margin="8,0,0,0">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="▼" IsVisible="{Binding SearchViewModel.IsResultsPanelExpanded}"/>
+                                <TextBlock Text="▶" IsVisible="{Binding !SearchViewModel.IsResultsPanelExpanded}"/>
+                                <TextBlock Text="Results"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <Button Grid.Column="2"
+                            Content="✕"
+                            Command="{Binding CloseSearchPanelCommand}"
+                            Padding="10,6"
+                            ToolTip.Tip="Close Search (Esc)"
+                            FontWeight="Bold"/>
+                </Grid>
+
+                <!-- Search Results List -->
+                <Border Background="#FFF8DC"
+                        BorderBrush="#F0E68C"
+                        BorderThickness="0,1,0,0"
+                        MaxHeight="200"
+                        IsVisible="{Binding SearchViewModel.IsResultsPanelExpanded}">
+                    <Grid>
+                        <!-- No results message -->
+                        <TextBlock Text="No matches found"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="#888888"
+                                   FontStyle="Italic"
+                                   Padding="12"
+                                   IsVisible="{Binding !SearchViewModel.Results.Count}"/>
+
+                        <!-- Results list -->
+                        <ListBox ItemsSource="{Binding SearchViewModel.Results}"
+                                 SelectedItem="{Binding SearchViewModel.SelectedResult}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 IsVisible="{Binding SearchViewModel.Results.Count}">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).SearchViewModel.SelectResultCommand}"
+                                            CommandParameter="{Binding}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="8,6"
+                                            HorizontalAlignment="Stretch"
+                                            HorizontalContentAlignment="Stretch"
+                                            Cursor="Hand">
+                                        <Grid ColumnDefinitions="Auto,*">
+                                            <!-- Page badge -->
+                                            <Border Grid.Column="0"
+                                                    Background="#4A90E2"
+                                                    CornerRadius="3"
+                                                    Padding="6,2"
+                                                    Margin="0,0,10,0"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding PageNumber, StringFormat='Page {0}'}"
+                                                           Foreground="White"
+                                                           FontSize="11"
+                                                           FontWeight="SemiBold"/>
+                                            </Border>
+                                            <!-- Context snippet -->
+                                            <TextBlock Grid.Column="1"
+                                                       Text="{Binding ContextSnippet}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="#333333"
+                                                       FontSize="12"/>
+                                        </Grid>
+                                    </Button>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </Border>
+            </StackPanel>
         </Border>
 
         <!-- Status Bar -->
@@ -1279,15 +1363,57 @@
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 IsVisible="{Binding IsSinglePageMode}">
-                            <!-- Image displayed at native size - PDF is re-rendered at correct DPI for each zoom level -->
-                            <Image Source="{Binding CurrentPageImage}"
-                                   Stretch="None"/>
+                            <Grid>
+                                <Image Source="{Binding CurrentPageImage}"
+                                       Stretch="Uniform"/>
+                                <!-- Search highlight overlay -->
+                                <Canvas Name="HighlightCanvas"
+                                        IsHitTestVisible="False"
+                                        ClipToBounds="False"/>
+                                <!-- Search match indicator badge -->
+                                <Border Background="#E6FFD700"
+                                        CornerRadius="4"
+                                        Padding="10,6"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Margin="0,8,8,0"
+                                        IsVisible="{Binding CurrentPageMatchCount}"
+                                        BoxShadow="0 2 4 0 #40000000">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding CurrentPageMatchText}"
+                                                   FontSize="12"
+                                                   FontWeight="SemiBold"
+                                                   Foreground="#333333"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
                         </Border>
 
                         <!-- Two-Page Mode -->
                         <Grid Margin="40"
                               HorizontalAlignment="Center"
                               IsVisible="{Binding IsTwoPageMode}">
+                            <!-- Search match indicator badge for two-page mode -->
+                            <Border Background="#E6FFD700"
+                                    CornerRadius="4"
+                                    Padding="10,6"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Margin="0,0,0,0"
+                                    ZIndex="10"
+                                    IsVisible="{Binding CurrentPageMatchCount}"
+                                    BoxShadow="0 2 4 0 #40000000">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding CurrentPageMatchText}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#333333"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
                             <StackPanel Orientation="Horizontal"
                                         Spacing="20"
                                         HorizontalAlignment="Center">
@@ -1296,7 +1422,7 @@
                                         BoxShadow="0 4 8 0 #40000000"
                                         CornerRadius="2">
                                     <Image Source="{Binding CurrentPageImage}"
-                                           Stretch="None"/>
+                                           Stretch="Uniform"/>
                                 </Border>
                                 <!-- Right Page (if available) -->
                                 <Border Background="White"
@@ -1304,7 +1430,7 @@
                                         CornerRadius="2"
                                         IsVisible="{Binding SecondPageImage, Converter={x:Static ObjectConverters.IsNotNull}}">
                                     <Image Source="{Binding SecondPageImage}"
-                                           Stretch="None"/>
+                                           Stretch="Uniform"/>
                                 </Border>
                             </StackPanel>
                         </Grid>
