@@ -59,6 +59,14 @@ public partial class MainWindow : Window
         {
             viewModel.ScrollToPageRequested += OnScrollToPageRequested;
 
+            // Subscribe to zoom scroll preservation events
+            viewModel.GetCurrentScrollPosition += OnGetCurrentScrollPosition;
+            viewModel.RestoreScrollPosition += OnRestoreScrollPosition;
+
+            // Subscribe to high-quality render scroll preservation
+            viewModel.SaveScrollPosition += OnSaveScrollPosition;
+            viewModel.RestoreScrollPositionAfterRender += OnRestoreScrollPositionAfterRender;
+
             // Subscribe to highlight rectangles changes
             viewModel.HighlightRects.CollectionChanged += OnHighlightRectsChanged;
         }
@@ -296,6 +304,90 @@ public partial class MainWindow : Window
         _lastScrolledToPage = pageNumber;
     }
 
+    private (int pageNumber, double relativePosition) OnGetCurrentScrollPosition()
+    {
+        if (_documentScrollViewer == null) return (1, 0);
+        if (DataContext is not MainWindowViewModel viewModel) return (1, 0);
+        if (!viewModel.IsContinuousMode || viewModel.Pages.Count == 0) return (1, 0);
+
+        var scrollOffset = _documentScrollViewer.Offset.Y;
+        const double pageGap = 20;
+        const double margin = 40;
+
+        // Find which page is at the current scroll position
+        double cumulativeHeight = margin;
+        int currentPage = 1;
+        double relativePosition = 0;
+
+        for (int i = 0; i < viewModel.Pages.Count; i++)
+        {
+            var pageHeight = viewModel.Pages[i].Height;
+            var nextCumulative = cumulativeHeight + pageHeight + pageGap;
+
+            if (scrollOffset < nextCumulative)
+            {
+                currentPage = i + 1;
+                // Calculate relative position within this page (0 = top, 1 = bottom)
+                relativePosition = Math.Max(0, (scrollOffset - cumulativeHeight) / pageHeight);
+                break;
+            }
+            cumulativeHeight = nextCumulative;
+        }
+
+        Console.WriteLine($"[ScrollPos] Current: Page {currentPage}, Relative {relativePosition:F2}, ScrollY {scrollOffset:F0}");
+        return (currentPage, relativePosition);
+    }
+
+    private void OnRestoreScrollPosition(int pageNumber, double relativePosition)
+    {
+        // Skip if we're doing mouse-centered zoom - the View handles scroll in that case
+        if (_isZooming) return;
+
+        if (_documentScrollViewer == null) return;
+        if (DataContext is not MainWindowViewModel viewModel) return;
+        if (!viewModel.IsContinuousMode || viewModel.Pages.Count == 0) return;
+        if (pageNumber < 1 || pageNumber > viewModel.Pages.Count) return;
+
+        const double pageGap = 20;
+        const double margin = 40;
+
+        // Calculate the new scroll offset for the same page after zoom
+        double targetOffset = margin;
+        for (int i = 0; i < pageNumber - 1; i++)
+        {
+            targetOffset += viewModel.Pages[i].Height + pageGap;
+        }
+
+        // Add the relative position within the page
+        var pageHeight = viewModel.Pages[pageNumber - 1].Height;
+        targetOffset += relativePosition * pageHeight;
+
+        Console.WriteLine($"[ScrollPos] Restoring: Page {pageNumber}, Relative {relativePosition:F2}, NewScrollY {targetOffset:F0}");
+        _documentScrollViewer.Offset = new Vector(_documentScrollViewer.Offset.X, targetOffset);
+        _lastScrolledToPage = pageNumber;
+    }
+
+    private (double x, double y) OnSaveScrollPosition()
+    {
+        if (_documentScrollViewer == null) return (0, 0);
+        return (_documentScrollViewer.Offset.X, _documentScrollViewer.Offset.Y);
+    }
+
+    private void OnRestoreScrollPositionAfterRender(double x, double y)
+    {
+        if (_documentScrollViewer == null) return;
+
+        // Use dispatcher to ensure layout is complete
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            var maxX = Math.Max(0, _documentScrollViewer.Extent.Width - _documentScrollViewer.Viewport.Width);
+            var maxY = Math.Max(0, _documentScrollViewer.Extent.Height - _documentScrollViewer.Viewport.Height);
+            x = Math.Clamp(x, 0, maxX);
+            y = Math.Clamp(y, 0, maxY);
+            _documentScrollViewer.Offset = new Vector(x, y);
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
     private async void UpdateViewportSize()
     {
         if (_documentScrollViewer != null && DataContext is MainWindowViewModel viewModel)
@@ -452,17 +544,49 @@ public partial class MainWindow : Window
 
     private DateTime _lastWheelNavigate = DateTime.MinValue;
     private const int WheelNavigateCooldownMs = 400;
+    private Point _lastZoomMousePosition;
+    private bool _isZooming = false;
 
     private async void OnPointerWheelChanged(object? sender, PointerWheelEventArgs e)
     {
         if (DataContext is not MainWindowViewModel viewModel) return;
         if (_documentScrollViewer == null) return;
 
-        // Ctrl+Scroll = Zoom
+        // Ctrl+Scroll = Zoom centered on mouse position
         if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
         {
+            _isZooming = true;
+
+            // Get mouse position relative to the scroll viewer's viewport
+            var mouseInViewport = e.GetPosition(_documentScrollViewer);
+
+            // Calculate the document position under the mouse before zoom
+            var oldOffset = _documentScrollViewer.Offset;
+            var docX = oldOffset.X + mouseInViewport.X;
+            var docY = oldOffset.Y + mouseInViewport.Y;
+
+            // Calculate scale ratio from zoom delta
             var zoomIn = e.Delta.Y > 0;
+            var oldZoom = viewModel.ZoomFactor;
+            var delta = zoomIn ? 0.1 : -0.1;
+            var newZoom = Math.Clamp(oldZoom + delta, 0.25, 5.0);
+            var scaleRatio = newZoom / oldZoom;
+
+            // Apply zoom (this resizes containers immediately in continuous mode)
             await viewModel.MouseWheelZoom(zoomIn);
+
+            // Calculate new scroll offset to keep the same point under the mouse
+            var newOffsetX = docX * scaleRatio - mouseInViewport.X;
+            var newOffsetY = docY * scaleRatio - mouseInViewport.Y;
+
+            // Clamp to valid range
+            newOffsetX = Math.Max(0, newOffsetX);
+            newOffsetY = Math.Max(0, newOffsetY);
+
+            // Set scroll position immediately after container resize
+            _documentScrollViewer.Offset = new Vector(newOffsetX, newOffsetY);
+
+            _isZooming = false;
             e.Handled = true;
             return;
         }

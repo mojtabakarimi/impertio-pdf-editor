@@ -348,6 +348,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
             LoadingProgress = 90;
 
+            // Reset zoom factors for new document
+            _renderedZoomFactor = ZoomFactor;
+            VisualZoomFactor = ZoomFactor;
+            OnPropertyChanged(nameof(DisplayScaleFactor));
+
             // Initialize pages based on current view mode
             if (IsContinuousMode)
             {
@@ -898,6 +903,10 @@ public partial class MainWindowViewModel : ViewModelBase
     // Event for requesting scroll to a specific page in continuous mode
     public event Action<int>? ScrollToPageRequested;
 
+    // Event for zoom operations - View should preserve scroll position
+    public event Func<(int pageNumber, double relativePosition)>? GetCurrentScrollPosition;
+    public event Action<int, double>? RestoreScrollPosition;
+
     private async Task NavigateToPage(int pageNumber)
     {
         if (!IsDocumentLoaded || pageNumber < 1 || pageNumber > TotalPages)
@@ -982,6 +991,10 @@ public partial class MainWindowViewModel : ViewModelBase
         Console.WriteLine($"[Zoom] ZoomFactor: {ZoomFactor}, RenderOptions.ZoomFactor: {_renderOptions.ZoomFactor}");
         Console.WriteLine($"[Zoom] RenderOptions.Dpi: {_renderOptions.Dpi}");
 
+        // Get current scroll position before changing page sizes
+        var scrollInfo = GetCurrentScrollPosition?.Invoke() ?? (CurrentPageNumber, 0.0);
+        Console.WriteLine($"[Zoom] Preserving scroll position: Page {scrollInfo.pageNumber}, RelativePos {scrollInfo.relativePosition:F2}");
+
         // DPI scale factor - must match the render DPI
         var dpiScale = _renderOptions.Dpi / 72.0;
         Console.WriteLine($"[Zoom] DPI Scale: {dpiScale}");
@@ -1015,9 +1028,12 @@ public partial class MainWindowViewModel : ViewModelBase
             }
         }
 
+        // Restore scroll position to the same page after sizes changed
+        RestoreScrollPosition?.Invoke(scrollInfo.pageNumber, scrollInfo.relativePosition);
+
         // Re-render visible pages (around current page)
-        int startIndex = Math.Max(0, CurrentPageNumber - 3);
-        int endIndex = Math.Min(TotalPages - 1, CurrentPageNumber + 3);
+        int startIndex = Math.Max(0, scrollInfo.pageNumber - 3);
+        int endIndex = Math.Min(TotalPages - 1, scrollInfo.pageNumber + 3);
 
         Console.WriteLine($"[Zoom] Re-rendering pages {startIndex} to {endIndex}");
         await LoadVisiblePagesAsync(startIndex, endIndex - startIndex + 1);
@@ -1208,10 +1224,27 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         ZoomMode = ZoomMode.Manual;
         var delta = zoomIn ? 0.1 : -0.1;
-        ZoomFactor = Math.Clamp(ZoomFactor + delta, 0.25, 5.0);
+        var oldZoom = ZoomFactor;
+        var newZoom = Math.Clamp(ZoomFactor + delta, 0.25, 5.0);
+
+        ZoomFactor = newZoom;
 
         // Update status immediately
         StatusText = $"Page {CurrentPageNumber} of {TotalPages} | Zoom: {(int)(ZoomFactor * 100)}%";
+
+        // For continuous mode: resize page containers immediately (images will stretch)
+        if (IsContinuousMode && Pages.Count > 0)
+        {
+            var dpiScale = _renderOptions.Dpi / 72.0;
+            var zoomRatio = newZoom / oldZoom;
+
+            for (int i = 0; i < Pages.Count; i++)
+            {
+                // Scale container sizes by zoom ratio (keeps existing image, just stretches it)
+                Pages[i].Width *= zoomRatio;
+                Pages[i].Height *= zoomRatio;
+            }
+        }
 
         // Debounce high-quality render - cancel previous pending render
         _zoomRenderCts?.Cancel();
@@ -1223,14 +1256,14 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             try
             {
-                await Task.Delay(300, token); // Wait 300ms after last zoom action
+                await Task.Delay(400, token); // Wait 400ms after last zoom action
                 if (!token.IsCancellationRequested)
                 {
-                    _renderOptions.ZoomFactor = ZoomFactor;
                     await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
                     {
+                        _renderOptions.ZoomFactor = ZoomFactor;
                         _documentService.ClearCache();
-                        await RenderCurrentPage();
+                        await RenderCurrentPageHighQuality();
                     });
                 }
             }
@@ -1238,12 +1271,88 @@ public partial class MainWindowViewModel : ViewModelBase
         });
     }
 
+    // Event to save/restore scroll position during high-quality render
+    public event Func<(double x, double y)>? SaveScrollPosition;
+    public event Action<double, double>? RestoreScrollPositionAfterRender;
+
+    // High-quality render after zoom settles - updates _renderedZoomFactor when done
+    private async Task RenderCurrentPageHighQuality()
+    {
+        if (!IsDocumentLoaded) return;
+
+        try
+        {
+            // Save current scroll position (scaled)
+            var savedPos = SaveScrollPosition?.Invoke() ?? (0, 0);
+            var oldScale = DisplayScaleFactor;
+
+            if (IsContinuousMode)
+            {
+                await UpdateContinuousPagesForZoomHighQuality();
+            }
+            else
+            {
+                await RenderCurrentPage();
+            }
+
+            // Update rendered zoom factor - this resets DisplayScaleFactor to 1.0
+            _renderedZoomFactor = ZoomFactor;
+            VisualZoomFactor = ZoomFactor;
+            OnPropertyChanged(nameof(DisplayScaleFactor));
+
+            // Restore scroll position (adjust for scale change: oldScale -> 1.0)
+            // Position was in scaled coords, now content is at 1:1, so divide by oldScale
+            if (oldScale > 0)
+            {
+                RestoreScrollPositionAfterRender?.Invoke(savedPos.x / oldScale, savedPos.y / oldScale);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Zoom] High quality render error: {ex.Message}");
+        }
+    }
+
+    // High-quality render for continuous mode - doesn't change page sizes, just re-renders images
+    private async Task UpdateContinuousPagesForZoomHighQuality()
+    {
+        Console.WriteLine($"[ZoomHQ] Rendering at ZoomFactor={ZoomFactor}");
+
+        // Only clear and reload visible pages to minimize disruption
+        int startIndex = Math.Max(0, CurrentPageNumber - 3);
+        int endIndex = Math.Min(TotalPages - 1, CurrentPageNumber + 3);
+
+        // Clear only visible pages
+        for (int i = startIndex; i <= endIndex; i++)
+        {
+            if (i < Pages.Count)
+            {
+                Pages[i].PageImage = null;
+                Pages[i].IsLoading = true;
+            }
+        }
+
+        // Re-render visible pages
+        await LoadVisiblePagesAsync(startIndex, endIndex - startIndex + 1);
+
+        Console.WriteLine($"[ZoomHQ] Render complete");
+    }
+
     // Computed property for zoom percentage display
     public int ZoomPercentage => (int)(ZoomFactor * 100);
 
-    // Display scale factor - always 1.0, PDF is re-rendered at correct DPI for each zoom level
-    // This gives crisp text/graphics at any zoom (like Adobe/Foxit)
-    public double DisplayScaleFactor => 1.0;
+    // Visual scale factor for instant zoom feedback (transform-based)
+    // This changes immediately during zoom for smooth visual feedback
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayScaleFactor))]
+    private double _visualZoomFactor = 1.0;
+
+    // The zoom level at which pages were last rendered
+    private double _renderedZoomFactor = 1.0;
+
+    // Display scale factor - ratio between visual zoom and rendered zoom
+    // Used by ScaleTransform for instant zoom feedback
+    public double DisplayScaleFactor => _renderedZoomFactor > 0 ? VisualZoomFactor / _renderedZoomFactor : 1.0;
 
     // ========== RECENT FILES ==========
 
