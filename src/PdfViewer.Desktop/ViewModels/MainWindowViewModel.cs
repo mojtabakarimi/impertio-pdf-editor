@@ -630,8 +630,17 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (ViewMode == ViewMode.Continuous) return;
 
+        // Remember current page before switching
+        var currentPage = CurrentPageNumber;
+
         ViewMode = ViewMode.Continuous;
         await InitializeContinuousPagesAsync();
+
+        // Scroll to the page we were on
+        if (currentPage > 0 && currentPage <= TotalPages)
+        {
+            ScrollToPageRequested?.Invoke(currentPage);
+        }
     }
 
     private async Task InitializeContinuousPagesAsync()
@@ -742,12 +751,18 @@ public partial class MainWindowViewModel : ViewModelBase
         await LoadVisiblePagesAsync(startIndex, endIndex - startIndex + 1);
     }
 
+    // Event to request thumbnail panel scroll
+    public event Action<int>? ScrollThumbnailToPageRequested;
+
     private void UpdateThumbnailSelection()
     {
         foreach (var thumbnail in Thumbnails)
         {
             thumbnail.IsSelected = thumbnail.PageNumber == CurrentPageNumber;
         }
+
+        // Request thumbnail panel to scroll to show current page
+        ScrollThumbnailToPageRequested?.Invoke(CurrentPageNumber);
     }
 
     [RelayCommand(CanExecute = nameof(CanNavigatePrevious))]

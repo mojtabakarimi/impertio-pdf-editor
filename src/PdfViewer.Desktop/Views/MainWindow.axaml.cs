@@ -67,6 +67,9 @@ public partial class MainWindow : Window
             viewModel.SaveScrollPosition += OnSaveScrollPosition;
             viewModel.RestoreScrollPositionAfterRender += OnRestoreScrollPositionAfterRender;
 
+            // Subscribe to thumbnail scroll request
+            viewModel.ScrollThumbnailToPageRequested += ScrollThumbnailToPage;
+
             // Subscribe to highlight rectangles changes
             viewModel.HighlightRects.CollectionChanged += OnHighlightRectsChanged;
         }
