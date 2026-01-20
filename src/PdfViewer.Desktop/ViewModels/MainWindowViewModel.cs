@@ -647,10 +647,9 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         Pages.Clear();
 
-        // DPI scale factor - must match the render DPI
-        var dpiScale = _renderOptions.Dpi / 72.0;
-
         // Create page view models for all pages
+        // Note: Container size uses PDF points * ZoomFactor to match bitmap logical size
+        // (Avalonia interprets PNG DPI metadata, so bitmap logical size = PDF points * ZoomFactor)
         for (int i = 1; i <= TotalPages; i++)
         {
             var pageVm = new PageViewModel
@@ -660,18 +659,17 @@ public partial class MainWindowViewModel : ViewModelBase
                 IsVisible = false
             };
 
-            // Get page dimensions - scale to match rendered image size
+            // Get page dimensions
             try
             {
                 var (width, height) = _documentService.GetPageSize(i - 1);
-                // Container size must match rendered image size exactly for crisp display
-                pageVm.Width = width * ZoomFactor * dpiScale;
-                pageVm.Height = height * ZoomFactor * dpiScale;
+                pageVm.Width = width * ZoomFactor;
+                pageVm.Height = height * ZoomFactor;
             }
             catch
             {
-                pageVm.Width = 612 * dpiScale; // Default letter width
-                pageVm.Height = 792 * dpiScale; // Default letter height
+                pageVm.Width = 612 * ZoomFactor; // Default letter width
+                pageVm.Height = 792 * ZoomFactor; // Default letter height
             }
 
             Pages.Add(pageVm);
@@ -1004,42 +1002,36 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         Console.WriteLine($"[Zoom] ========== ZOOM UPDATE START ==========");
         Console.WriteLine($"[Zoom] ZoomFactor: {ZoomFactor}, RenderOptions.ZoomFactor: {_renderOptions.ZoomFactor}");
-        Console.WriteLine($"[Zoom] RenderOptions.Dpi: {_renderOptions.Dpi}");
 
         // Get current scroll position before changing page sizes
         var scrollInfo = GetCurrentScrollPosition?.Invoke() ?? (CurrentPageNumber, 0.0);
         Console.WriteLine($"[Zoom] Preserving scroll position: Page {scrollInfo.pageNumber}, RelativePos {scrollInfo.relativePosition:F2}");
 
-        // DPI scale factor - must match the render DPI
-        var dpiScale = _renderOptions.Dpi / 72.0;
-        Console.WriteLine($"[Zoom] DPI Scale: {dpiScale}");
-
         // Update dimensions for all pages
+        // Container size = PDF points * ZoomFactor (matches bitmap logical size)
         for (int i = 0; i < Pages.Count; i++)
         {
             var pageVm = Pages[i];
             try
             {
                 var (width, height) = _documentService.GetPageSize(i);
-                var newWidth = width * ZoomFactor * dpiScale;
-                var newHeight = height * ZoomFactor * dpiScale;
+                var newWidth = width * ZoomFactor;
+                var newHeight = height * ZoomFactor;
 
                 Console.WriteLine($"[Zoom] Page {i}: Old size ({pageVm.Width:F0}x{pageVm.Height:F0}) -> New size ({newWidth:F0}x{newHeight:F0})");
 
-                // Container size must match rendered image size exactly for crisp display
                 pageVm.Width = newWidth;
                 pageVm.Height = newHeight;
 
                 // Clear the cached image so it gets re-rendered
-                Console.WriteLine($"[Zoom] Page {i}: Clearing PageImage (was {(pageVm.PageImage == null ? "NULL" : "NOT NULL")})");
                 pageVm.PageImage = null;
                 pageVm.IsLoading = true;
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[Zoom] Page {i}: Error - {ex.Message}");
-                pageVm.Width = 612 * ZoomFactor * dpiScale;
-                pageVm.Height = 792 * ZoomFactor * dpiScale;
+                pageVm.Width = 612 * ZoomFactor;
+                pageVm.Height = 792 * ZoomFactor;
             }
         }
 
